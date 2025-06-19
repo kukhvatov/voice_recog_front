@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
@@ -8,10 +7,6 @@ import {
   CircularProgress,
   Paper,
   Box,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
   Alert
 } from '@mui/material';
 import { styled } from '@mui/system';
@@ -36,7 +31,7 @@ export default function App() {
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
-      'audio/*': ['.mp3', '.wav', '.aac', '.ogg']
+      'audio/*': ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.m4a']
     },
     multiple: false,
     onDrop: files => handleUpload(files[0])
@@ -51,13 +46,28 @@ export default function App() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('http://185.137.233.217:80/transcribe', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      // Указываем responseType: 'text' для получения текстового ответа
+      const response = await axios.post('http://localhost:8000/transcribe', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'text'  // Важно: запрашиваем текстовый ответ
       });
 
+      // Сохраняем текст ответа как есть
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Ошибка при обработке файла');
+      console.error("Error details:", err);
+
+      let errorMessage = 'Ошибка при обработке файла';
+      if (err.response) {
+        // Пытаемся получить текстовое сообщение об ошибке
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data?.detail) {
+          errorMessage = err.response.data.detail;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -75,7 +85,7 @@ export default function App() {
           Перетащите аудиофайл сюда или кликните для выбора
         </Typography>
         <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-          Поддерживаемые форматы: MP3, WAV, AAC, OGG
+          Поддерживаемые форматы: MP3, WAV, AAC, OGG, FLAC, M4A
         </Typography>
       </Dropzone>
 
@@ -100,24 +110,20 @@ export default function App() {
             Результат транскрипции:
           </Typography>
 
-          <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-wrap' }}>
-            {result.text}
+          {/* Используем pre-wrap для сохранения переносов строк */}
+          <Typography
+            component="div"
+            sx={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace',
+              backgroundColor: '#f5f5f5',
+              padding: '16px',
+              borderRadius: '4px',
+              marginTop: '16px'
+            }}
+          >
+            {result}
           </Typography>
-
-          <Typography variant="h6" sx={{ mt: 3 }}>
-            Детализация:
-          </Typography>
-
-          <List dense>
-            {result.segments.map((segment, index) => (
-              <ListItem key={index}>
-                <ListItemText
-                  primary={segment.text}
-                  secondary={`${segment.start.toFixed(1)}s - ${segment.end.toFixed(1)}s`}
-                />
-              </ListItem>
-            ))}
-          </List>
         </Paper>
       )}
     </Container>

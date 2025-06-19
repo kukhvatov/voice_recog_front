@@ -31,7 +31,7 @@ export default function App() {
 
   const { getRootProps, getInputProps } = useDropzone({
     accept: {
-      'audio/*': ['.mp3', '.wav', '.aac', '.ogg']
+      'audio/*': ['.mp3', '.wav', '.aac', '.ogg', '.flac', '.m4a']
     },
     multiple: false,
     onDrop: files => handleUpload(files[0])
@@ -46,15 +46,31 @@ export default function App() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('http://185.137.233.217/transcribe', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      // Указываем responseType: 'text' для получения текстового ответа
+      const response = await axios.post('http://localhost:8000/transcribe', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        responseType: 'text'  // Важно: запрашиваем текстовый ответ
       });
 
+      // Сохраняем текст ответа как есть
       setResult(response.data);
     } catch (err) {
       console.log("Full error object:", err);
       console.log("Response data:", err.response?.data);
-      setError(err.response?.data?.detail || 'Ошибка при обработке файла');
+
+      let errorMessage = 'Ошибка при обработке файла';
+      if (err.response) {
+        // Если бэкенд вернул строку с ошибкой
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        }
+        // Если бэкенд вернул JSON с полем detail
+        else if (err.response.data?.detail) {
+          errorMessage = err.response.data.detail;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -72,7 +88,7 @@ export default function App() {
           Перетащите аудиофайл сюда или кликните для выбора
         </Typography>
         <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-          Поддерживаемые форматы: MP3, WAV, AAC, OGG
+          Поддерживаемые форматы: MP3, WAV, AAC, OGG, FLAC, M4A
         </Typography>
       </Dropzone>
 
@@ -94,20 +110,23 @@ export default function App() {
       {result && (
         <Paper elevation={3} sx={{ p: 3, mt: 2 }}>
           <Typography variant="h5" gutterBottom>
-            Распознанный текст:
+            Результат транскрипции:
           </Typography>
-          <pre style={{
-            backgroundColor: '#f5f5f5',
-            padding: '16px',
-            borderRadius: '4px',
-            overflowX: 'auto',
-            maxHeight: '500px',
-            overflowY: 'auto'
-          }}>
-            <code>
-              {JSON.stringify(result, null, 2)}
-            </code>
-          </pre>
+
+          {/* Используем pre-wrap для сохранения переносов строк */}
+          <Typography
+            component="div"
+            sx={{
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'monospace',
+              backgroundColor: '#f5f5f5',
+              padding: '16px',
+              borderRadius: '4px',
+              marginTop: '16px'
+            }}
+          >
+            {result}
+          </Typography>
         </Paper>
       )}
     </Container>
