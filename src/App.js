@@ -47,7 +47,7 @@ export default function App() {
       formData.append('file', file);
 
       // Указываем responseType: 'text' для получения текстового ответа
-      const response = await axios.post('http://localhost:8000/transcribe', formData, {
+      const response = await axios.post('http://185.137.233.217/transcribe', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'text'  // Важно: запрашиваем текстовый ответ
       });
