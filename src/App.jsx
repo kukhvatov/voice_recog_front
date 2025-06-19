@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
@@ -7,6 +8,10 @@ import {
   CircularProgress,
   Paper,
   Box,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
   Alert
 } from '@mui/material';
 import { styled } from '@mui/system';
@@ -46,14 +51,12 @@ export default function App() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('http://185.137.233.217/transcribe', formData, {
+      const response = await axios.post('http://185.137.233.217:80/transcribe', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setResult(response.data);
     } catch (err) {
-      console.log("Full error object:", err);
-      console.log("Response data:", err.response?.data);
       setError(err.response?.data?.detail || 'Ошибка при обработке файла');
     } finally {
       setUploading(false);
@@ -94,20 +97,27 @@ export default function App() {
       {result && (
         <Paper elevation={3} sx={{ p: 3, mt: 2 }}>
           <Typography variant="h5" gutterBottom>
-            Распознанный текст:
+            Результат транскрипции:
           </Typography>
-          <pre style={{
-            backgroundColor: '#f5f5f5',
-            padding: '16px',
-            borderRadius: '4px',
-            overflowX: 'auto',
-            maxHeight: '500px',
-            overflowY: 'auto'
-          }}>
-            <code>
-              {JSON.stringify(result, null, 2)}
-            </code>
-          </pre>
+
+          <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-wrap' }}>
+            {result.text}
+          </Typography>
+
+          <Typography variant="h6" sx={{ mt: 3 }}>
+            Детализация:
+          </Typography>
+
+          <List dense>
+            {result.segments.map((segment, index) => (
+              <ListItem key={index}>
+                <ListItemText
+                  primary={segment.text}
+                  secondary={`${segment.start.toFixed(1)}s - ${segment.end.toFixed(1)}s`}
+                />
+              </ListItem>
+            ))}
+          </List>
         </Paper>
       )}
     </Container>
